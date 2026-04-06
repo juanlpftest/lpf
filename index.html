@@ -4,7 +4,6 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken }
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, query } from 'firebase/firestore';
 
 // --- CONFIGURACIÓN DE FIREBASE ---
-// Reemplaza estos valores con los de tu consola de Firebase cuando los tengas
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
     ? JSON.parse(__firebase_config) 
     : {
@@ -30,7 +29,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loginError, setLoginError] = useState('');
 
-  // 1. Autenticación Inicial (Regla 3)
+  // 1. Autenticación Inicial
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -51,15 +50,13 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Escuchar Datos de la Nube (Regla 1 y 2)
+  // 2. Escuchar Datos de la Nube
   useEffect(() => {
     if (!user) return;
 
-    // Escuchar Usuarios
     const qUsers = collection(db, 'artifacts', appId, 'public', 'data', 'usuarios');
     const unsubUsers = onSnapshot(qUsers, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Si no hay admin, creamos uno por defecto en la nube la primera vez
       if (docs.length === 0) {
           const adminRef = doc(db, 'artifacts', appId, 'public', 'data', 'usuarios', 'admin_default');
           setDoc(adminRef, { nombre: "Admin LPF", login: "admin", pass: "1234", rol: "admin" });
@@ -67,7 +64,6 @@ export default function App() {
       setUsuarios(docs);
     }, (err) => console.error("Error users:", err));
 
-    // Escuchar Casos
     const qCasos = collection(db, 'artifacts', appId, 'public', 'data', 'casos');
     const unsubCasos = onSnapshot(qCasos, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -80,7 +76,6 @@ export default function App() {
     };
   }, [user]);
 
-  // Funciones de Negocio
   const handleLogin = (e) => {
     e.preventDefault();
     const uInput = e.target.user.value;
@@ -98,7 +93,6 @@ export default function App() {
 
   const agregarCaso = async (e) => {
     e.preventDefault();
-    if (!user) return;
     const formData = new FormData(e.target);
     const nuevoCaso = {
       nombre: formData.get('nombre'),
@@ -110,22 +104,7 @@ export default function App() {
       fechaRegistro: new Date().toISOString()
     };
     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'casos'), nuevoCaso);
-    e.target.reset();
-    alert("Caso guardado en la nube");
-  };
-
-  const agregarUsuario = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const nuevoUser = {
-      nombre: formData.get('nombre'),
-      login: formData.get('login'),
-      pass: formData.get('pass'),
-      rol: 'abogado'
-    };
-    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'usuarios'), nuevoUser);
-    e.target.reset();
-    alert("Nuevo abogado registrado");
+    setView('dashboard');
   };
 
   const eliminarDoc = async (coll, id) => {
@@ -134,158 +113,277 @@ export default function App() {
     }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-900 text-white">Cargando Estudio LPF...</div>;
+  // KPIs
+  const hoy = new Date().toISOString().split('T')[0];
+  const stats = {
+    total: casos.length,
+    venceHoy: casos.filter(c => c.vencimiento === hoy).length,
+    agendas: casos.filter(c => c.audiencia).length,
+    personales: casos.filter(c => c.tipo === 'Personal').length,
+    comunas: casos.filter(c => c.tipo === 'Comuna').length
+  };
+
+  if (loading) return (
+    <div className="flex h-screen flex-col items-center justify-center bg-[#0f172a] text-white">
+      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
+      <p className="font-bold tracking-widest uppercase text-sm">Iniciando Estudio LPF</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900">
       {view === 'login' ? (
-        <div className="flex h-screen items-center justify-center bg-slate-900">
-          <div className="w-full max-w-md rounded-3xl bg-white p-10 shadow-2xl">
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                <span className="text-3xl">⚖️</span>
+        <div className="flex h-screen items-center justify-center bg-[#0f172a]">
+          <div className="w-full max-w-md rounded-[2.5rem] bg-white p-12 shadow-2xl">
+            <div className="mb-10 text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 text-amber-600 shadow-inner">
+                 <span className="text-4xl">⚖️</span>
               </div>
-              <h1 className="text-3xl font-black">Estudio LPF</h1>
-              <p className="text-slate-400">Acceso a la Nube Real</p>
+              <h1 className="text-3xl font-black text-[#1e293b]">Estudio LPF</h1>
+              <p className="text-slate-400 font-medium mt-1">Conexión Segura Cloud</p>
             </div>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <input name="user" type="text" placeholder="Usuario" className="w-full rounded-xl border border-slate-200 p-4 outline-none focus:ring-2 focus:ring-amber-500" required />
-              <input name="pass" type="password" placeholder="Contraseña" className="w-full rounded-xl border border-slate-200 p-4 outline-none focus:ring-2 focus:ring-amber-500" required />
-              <button className="w-full rounded-xl bg-slate-900 p-4 font-bold text-white transition hover:bg-slate-800">Entrar</button>
-              {loginError && <p className="text-center text-sm font-bold text-red-500">{loginError}</p>}
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Usuario</label>
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">👤</span>
+                    <input name="user" type="text" placeholder="Nombre de usuario" className="w-full rounded-2xl border border-slate-100 bg-slate-50/50 p-4 pl-12 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" required />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Contraseña</label>
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                    <input name="pass" type="password" placeholder="••••••••" className="w-full rounded-2xl border border-slate-100 bg-slate-50/50 p-4 pl-12 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" required />
+                </div>
+              </div>
+              <button className="w-full rounded-2xl bg-[#0f172a] p-5 font-bold text-white shadow-xl shadow-slate-900/20 transition hover:bg-slate-800 active:scale-[0.98]">
+                Entrar al Sistema
+              </button>
+              {loginError && <p className="text-center text-sm font-bold text-red-500 animate-bounce">{loginError}</p>}
             </form>
           </div>
         </div>
       ) : (
         <div className="flex h-screen flex-col">
-          {/* Header */}
-          <header className="flex items-center justify-between bg-slate-900 px-8 py-4 text-white">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚖️</span>
-              <span className="text-xl font-bold tracking-tighter">Estudio LPF</span>
+          {/* Header Superior */}
+          <header className="flex items-center justify-between bg-[#0f172a] px-10 py-4 text-white shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500 p-1.5 rounded-lg">
+                <span className="text-xl">⚖️</span>
+              </div>
+              <span className="text-xl font-bold tracking-tight">Estudio LPF</span>
             </div>
-            <div className="flex items-center gap-6">
-                <nav className="flex gap-4 text-sm font-bold uppercase tracking-widest text-slate-400">
-                    <button onClick={() => setView('dashboard')} className={view === 'dashboard' ? 'text-amber-500' : ''}>Casos</button>
-                    {currentUserProfile?.rol === 'admin' && <button onClick={() => setView('users')} className={view === 'users' ? 'text-amber-500' : ''}>Usuarios</button>}
+            
+            <div className="flex items-center gap-8">
+                <nav className="flex gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                    <button onClick={() => setView('dashboard')} className={`hover:text-white transition ${view === 'dashboard' ? 'text-amber-500' : ''}`}>Escritorio</button>
+                    {currentUserProfile?.rol === 'admin' && <button onClick={() => setView('users')} className={`hover:text-white transition ${view === 'users' ? 'text-amber-500' : ''}`}>Equipo</button>}
                 </nav>
-                <div className="text-right border-l border-slate-700 pl-6">
-                    <p className="text-xs font-bold">{currentUserProfile?.nombre}</p>
-                    <button onClick={() => setView('login')} className="text-[10px] text-red-400 uppercase">Salir</button>
+                
+                <div className="flex items-center gap-4 border-l border-slate-800 pl-8">
+                    <button onClick={() => setView('nuevo-caso')} className="bg-amber-500 hover:bg-amber-600 px-5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+                       + Nuevo Caso
+                    </button>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 font-bold text-[10px] text-slate-900">
+                        {currentUserProfile?.nombre.substring(0,2).toUpperCase()}
+                    </div>
                 </div>
             </div>
           </header>
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto p-10">
             {view === 'dashboard' ? (
-              <div className="mx-auto max-w-6xl space-y-8">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Expedientes en Nube</p>
-                        <h2 className="text-4xl font-black">{casos.length}</h2>
+              <div className="mx-auto max-w-7xl space-y-10">
+                {/* Indicadores - Diseño Grid Captura */}
+                <div className="grid grid-cols-5 gap-6">
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Casos</p>
+                        <h2 className="text-3xl font-black text-slate-800">{stats.total}</h2>
                     </div>
-                    <div className="rounded-2xl bg-amber-500 p-6 shadow-lg text-white md:col-span-2 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-xl font-bold">Nuevo Expediente</h2>
-                            <p className="text-sm opacity-80">Sincronización instantánea con todos los dispositivos</p>
-                        </div>
-                        <button onClick={() => setView('nuevo-caso')} className="rounded-lg bg-white px-6 py-2 font-bold text-slate-900">Registrar</button>
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Vence Hoy</p>
+                        <h2 className="text-3xl font-black text-red-600">{stats.venceHoy}</h2>
+                    </div>
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Agendas</p>
+                        <h2 className="text-3xl font-black text-amber-600">{stats.agendas}</h2>
+                    </div>
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest mb-1">Personales</p>
+                        <h2 className="text-3xl font-black text-purple-600">{stats.personales}</h2>
+                    </div>
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+                        <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-1">Comunas</p>
+                        <h2 className="text-3xl font-black text-cyan-600">{stats.comunas}</h2>
                     </div>
                 </div>
 
-                <div className="rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-[10px] font-bold uppercase text-slate-400">
-                            <tr>
-                                <th className="px-6 py-4">Carátula</th>
-                                <th className="px-6 py-4">Asignado</th>
-                                <th className="px-6 py-4">Vencimiento</th>
-                                <th className="px-6 py-4 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {casos.map(c => (
-                                <tr key={c.id} className="hover:bg-slate-50/50">
-                                    <td className="px-6 py-4">
-                                        <p className="font-bold">{c.nombre}</p>
-                                        <p className="text-[10px] text-slate-400 uppercase">{c.tipo}</p>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{c.asignado}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-amber-600">{c.vencimiento}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={() => eliminarDoc('casos', c.id)} className="text-slate-300 hover:text-red-500">🗑️</button>
-                                    </td>
-                                </tr>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    {/* Tabla de Casos */}
+                    <div className="lg:col-span-2 rounded-[2rem] bg-white shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center">
+                            <h3 className="font-black text-slate-700 text-lg">Listado de Expedientes Cloud</h3>
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-slate-400 animate-pulse"></div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Sincronizado</span>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50/50 text-[10px] font-bold uppercase text-slate-400 tracking-tighter">
+                                    <tr>
+                                        <th className="px-8 py-5">Carátula / Doc</th>
+                                        <th className="px-8 py-5">Estado</th>
+                                        <th className="px-8 py-5">Vencimiento</th>
+                                        <th className="px-8 py-5 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {casos.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" className="px-8 py-20 text-center text-slate-400 italic text-sm">
+                                                No hay datos en la nube para esta sesión.
+                                            </td>
+                                        </tr>
+                                    ) : casos.map(c => (
+                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-8 py-5">
+                                                <p className="font-bold text-slate-700">{c.nombre}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase font-semibold">{c.tipo} • {c.asignado}</p>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase">En Proceso</span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`text-xs font-bold ${c.vencimiento === hoy ? 'text-red-500 underline' : 'text-slate-600'}`}>
+                                                    {c.vencimiento}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button onClick={() => eliminarDoc('casos', c.id)} className="opacity-0 group-hover:opacity-100 transition text-slate-300 hover:text-red-500">
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Sidebar de Audiencias */}
+                    <div className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex items-center gap-2 mb-8">
+                            <span className="text-lg">📅</span>
+                            <h3 className="font-black text-slate-700 uppercase text-xs tracking-widest">Próximas Audiencias</h3>
+                        </div>
+                        <div className="space-y-6">
+                            {casos.filter(c => c.audiencia).length === 0 ? (
+                                <p className="text-center text-slate-400 italic text-sm py-10">No hay audiencias programadas.</p>
+                            ) : casos.filter(c => c.audiencia).map(c => (
+                                <div key={c.id} className="p-5 rounded-2xl bg-slate-50 border-l-4 border-amber-500 flex flex-col gap-1">
+                                    <p className="text-[10px] font-black text-amber-600 uppercase">{new Date(c.audiencia).toLocaleString()}</p>
+                                    <h4 className="font-bold text-slate-800 text-sm leading-tight">{c.nombre}</h4>
+                                    <p className="text-[10px] text-slate-400 mt-2 italic">A cargo: {c.asignado}</p>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
                 </div>
               </div>
             ) : view === 'users' ? (
-                <div className="mx-auto max-w-2xl space-y-8">
-                    <div className="rounded-2xl bg-white p-8 border border-slate-200">
-                        <h2 className="text-xl font-bold mb-6">Agregar Abogado al Estudio</h2>
-                        <form onSubmit={agregarUsuario} className="space-y-4">
-                            <input name="nombre" placeholder="Nombre Completo" className="w-full p-3 border rounded-lg" required />
-                            <div className="grid grid-cols-2 gap-4">
-                                <input name="login" placeholder="Usuario" className="w-full p-3 border rounded-lg" required />
-                                <input name="pass" type="password" placeholder="Pass" className="w-full p-3 border rounded-lg" required />
+                <div className="mx-auto max-w-2xl space-y-8 animate-in fade-in duration-500">
+                    <div className="rounded-[2rem] bg-white p-10 border border-slate-100 shadow-xl">
+                        <h2 className="text-xl font-black mb-8 text-slate-800 flex items-center gap-3">
+                            <span>👥</span> Gestión del Equipo
+                        </h2>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'usuarios'), {
+                                nombre: formData.get('nombre'),
+                                login: formData.get('login'),
+                                pass: formData.get('pass'),
+                                rol: 'abogado'
+                            });
+                            e.target.reset();
+                        }} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre del Profesional</label>
+                                <input name="nombre" placeholder="Ej: Dr. García" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
                             </div>
-                            <button className="w-full bg-slate-900 text-white p-3 rounded-lg font-bold">Crear Acceso</button>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Usuario</label>
+                                    <input name="login" placeholder="login" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Clave</label>
+                                    <input name="pass" type="password" placeholder="****" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                                </div>
+                            </div>
+                            <button className="w-full bg-[#0f172a] text-white p-5 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all">Registrar en Equipo</button>
                         </form>
-                    </div>
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50 text-[10px] font-bold p-4 uppercase text-slate-400">
-                                <tr><th className="p-4">Nombre</th><th className="p-4 text-right">Acción</th></tr>
-                            </thead>
-                            <tbody>
-                                {usuarios.map(u => (
-                                    <tr key={u.id} className="border-t">
-                                        <td className="p-4 font-medium">{u.nombre} ({u.login})</td>
-                                        <td className="p-4 text-right">
-                                            {u.login !== 'admin' && <button onClick={() => eliminarDoc('usuarios', u.id)} className="text-red-400">Borrar</button>}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             ) : (
-                <div className="mx-auto max-w-xl bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
-                    <h2 className="text-2xl font-bold mb-6">Nuevo Expediente</h2>
-                    <form onSubmit={agregarCaso} className="space-y-4">
-                        <input name="nombre" placeholder="Carátula" className="w-full p-4 border rounded-xl" required />
-                        <div className="grid grid-cols-2 gap-4">
-                            <select name="tipo" className="p-4 border rounded-xl bg-white">
-                                <option>Estudio</option>
-                                <option>Personal</option>
-                                <option>Comuna</option>
-                            </select>
-                            <select name="asignado" className="p-4 border rounded-xl bg-white">
-                                {usuarios.map(u => <option key={u.id}>{u.nombre}</option>)}
-                            </select>
+                <div className="mx-auto max-w-xl bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-2xl animate-in zoom-in-95 duration-300">
+                    <h2 className="text-2xl font-black mb-8 text-slate-800 flex items-center gap-3">
+                        <span className="bg-amber-500 p-2 rounded-lg text-white text-base">📁</span>
+                        Nuevo Expediente
+                    </h2>
+                    <form onSubmit={agregarCaso} className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Carátula / Identificación</label>
+                            <input name="nombre" placeholder="Nombre del caso o número" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-2">Vencimiento</label>
-                                <input name="vencimiento" type="date" className="w-full p-4 border rounded-xl" required />
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo</label>
+                                <select name="tipo" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none">
+                                    <option>Estudio</option>
+                                    <option>Personal</option>
+                                    <option>Comuna</option>
+                                </select>
                             </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-2">Audiencia</label>
-                                <input name="audiencia" type="datetime-local" className="w-full p-4 border rounded-xl" />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Responsable</label>
+                                <select name="asignado" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none">
+                                    {usuarios.map(u => <option key={u.id}>{u.nombre}</option>)}
+                                </select>
                             </div>
                         </div>
-                        <div className="flex gap-4 pt-4">
-                            <button type="button" onClick={() => setView('dashboard')} className="flex-1 p-4 font-bold text-slate-400">Cancelar</button>
-                            <button type="submit" className="flex-[2] bg-amber-500 text-white p-4 rounded-xl font-bold shadow-lg">Guardar en la Nube</button>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vencimiento de Plazo</label>
+                                <input name="vencimiento" type="date" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fecha de Audiencia</label>
+                                <input name="audiencia" type="datetime-local" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" />
+                            </div>
+                        </div>
+                        <div className="flex gap-4 pt-6">
+                            <button type="button" onClick={() => setView('dashboard')} className="flex-1 p-5 font-bold text-slate-400 hover:text-slate-600 transition">Cancelar</button>
+                            <button type="submit" className="flex-[2] bg-amber-500 text-white p-5 rounded-2xl font-bold shadow-xl shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-[0.98]">
+                                Guardar Expediente
+                            </button>
                         </div>
                     </form>
                 </div>
             )}
           </main>
+          
+          <footer className="bg-white px-10 py-3 border-t border-slate-100 flex justify-between items-center">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estudio LPF © 2026</p>
+            <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">Servidor Activo</span>
+                </div>
+            </div>
+          </footer>
         </div>
       )}
     </div>
