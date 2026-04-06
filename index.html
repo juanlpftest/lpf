@@ -1,286 +1,293 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio LPF - Guía Interactiva</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 400px;
-        }
-        .step-btn.active {
-            background-color: #f59e0b;
-            color: white;
-            border-color: #f59e0b;
-        }
-        .step-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .step-content.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, query } from 'firebase/firestore';
 
-<!-- Chosen Palette: Slate (800, 900 for structure and text) and Amber (400, 500 for accents and calls to action) to maintain the Estudio LPF professional identity. -->
-<!-- Application Structure Plan: The SPA is structured as a comprehensive technical manual. It guides the user through the immediate update process, explains the data storage architecture, and now includes a dedicated module for multi-user management. This structure ensures the user understands not just HOW to update, but WHO can access the system and WHY a migration to the cloud is essential for teamwork. -->
-<!-- Visualization & Content Choices:
-1. GitHub Update Process -> Goal: Organize/Inform -> Viz: Interactive Tabbed Stepper -> Justification: Breaks down technical instructions into digestible, focused parts.
-2. Storage Analysis -> Goal: Compare -> Viz: Radar Chart -> Justification: Compares Local vs Cloud architectures across 5 key performance metrics.
-3. User Permissions Analysis -> Goal: Compare -> Viz: Horizontal Bar Chart -> Justification: Clearly distinguishes the permission levels between Administrators and Collaborators for the new multi-user feature.
-4. User Creation Flow -> Goal: Organize -> Viz: Step-by-step logic cards -> Justification: Explains the transition from static to dynamic user management.
--->
-<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+// --- CONFIGURACIÓN DE FIREBASE ---
+// Reemplaza estos valores con los de tu consola de Firebase cuando los tengas
+const firebaseConfig = typeof __firebase_config !== 'undefined' 
+    ? JSON.parse(__firebase_config) 
+    : {
+        apiKey: "",
+        authDomain: "estudio-lpf.firebaseapp.com",
+        projectId: "estudio-lpf",
+        storageBucket: "estudio-lpf.appspot.com",
+        messagingSenderId: "000000000000",
+        appId: "1:000000000000:web:0000000000"
+    };
 
-    <header class="bg-slate-900 text-white py-12 px-6 shadow-md border-b-4 border-amber-500">
-        <div class="max-w-5xl mx-auto text-center md:text-left">
-            <div class="text-amber-500 text-4xl mb-4">&#9878;</div>
-            <h1 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Manual Operativo: Estudio LPF</h1>
-            <p class="text-lg text-slate-300 max-w-2xl">Gestión de actualizaciones, arquitectura de datos y administración de múltiples usuarios en la nube.</p>
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'estudio-lpf-prod';
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  const [view, setView] = useState('login');
+  const [casos, setCasos] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loginError, setLoginError] = useState('');
+
+  // 1. Autenticación Inicial (Regla 3)
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Error de auth:", error);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Escuchar Datos de la Nube (Regla 1 y 2)
+  useEffect(() => {
+    if (!user) return;
+
+    // Escuchar Usuarios
+    const qUsers = collection(db, 'artifacts', appId, 'public', 'data', 'usuarios');
+    const unsubUsers = onSnapshot(qUsers, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Si no hay admin, creamos uno por defecto en la nube la primera vez
+      if (docs.length === 0) {
+          const adminRef = doc(db, 'artifacts', appId, 'public', 'data', 'usuarios', 'admin_default');
+          setDoc(adminRef, { nombre: "Admin LPF", login: "admin", pass: "1234", rol: "admin" });
+      }
+      setUsuarios(docs);
+    }, (err) => console.error("Error users:", err));
+
+    // Escuchar Casos
+    const qCasos = collection(db, 'artifacts', appId, 'public', 'data', 'casos');
+    const unsubCasos = onSnapshot(qCasos, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setCasos(docs.sort((a, b) => new Date(a.vencimiento) - new Date(b.vencimiento)));
+    }, (err) => console.error("Error casos:", err));
+
+    return () => {
+      unsubUsers();
+      unsubCasos();
+    };
+  }, [user]);
+
+  // Funciones de Negocio
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const uInput = e.target.user.value;
+    const pInput = e.target.pass.value;
+    const found = usuarios.find(u => u.login === uInput && u.pass === pInput);
+    
+    if (found) {
+      setCurrentUserProfile(found);
+      setView('dashboard');
+      setLoginError('');
+    } else {
+      setLoginError('Credenciales incorrectas');
+    }
+  };
+
+  const agregarCaso = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+    const formData = new FormData(e.target);
+    const nuevoCaso = {
+      nombre: formData.get('nombre'),
+      tipo: formData.get('tipo'),
+      asignado: formData.get('asignado'),
+      vencimiento: formData.get('vencimiento'),
+      audiencia: formData.get('audiencia'),
+      creadoPor: currentUserProfile.login,
+      fechaRegistro: new Date().toISOString()
+    };
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'casos'), nuevoCaso);
+    e.target.reset();
+    alert("Caso guardado en la nube");
+  };
+
+  const agregarUsuario = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const nuevoUser = {
+      nombre: formData.get('nombre'),
+      login: formData.get('login'),
+      pass: formData.get('pass'),
+      rol: 'abogado'
+    };
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'usuarios'), nuevoUser);
+    e.target.reset();
+    alert("Nuevo abogado registrado");
+  };
+
+  const eliminarDoc = async (coll, id) => {
+    if (confirm("¿Confirmar eliminación?")) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', coll, id));
+    }
+  };
+
+  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-900 text-white">Cargando Estudio LPF...</div>;
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      {view === 'login' ? (
+        <div className="flex h-screen items-center justify-center bg-slate-900">
+          <div className="w-full max-w-md rounded-3xl bg-white p-10 shadow-2xl">
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                <span className="text-3xl">⚖️</span>
+              </div>
+              <h1 className="text-3xl font-black">Estudio LPF</h1>
+              <p className="text-slate-400">Acceso a la Nube Real</p>
+            </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input name="user" type="text" placeholder="Usuario" className="w-full rounded-xl border border-slate-200 p-4 outline-none focus:ring-2 focus:ring-amber-500" required />
+              <input name="pass" type="password" placeholder="Contraseña" className="w-full rounded-xl border border-slate-200 p-4 outline-none focus:ring-2 focus:ring-amber-500" required />
+              <button className="w-full rounded-xl bg-slate-900 p-4 font-bold text-white transition hover:bg-slate-800">Entrar</button>
+              {loginError && <p className="text-center text-sm font-bold text-red-500">{loginError}</p>}
+            </form>
+          </div>
         </div>
-    </header>
-
-    <main class="max-w-5xl mx-auto py-10 px-6 space-y-20">
-
-        <!-- INTRODUCCIÓN -->
-        <section id="introduccion" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-l-4 border-amber-500 pl-4">Propósito de la Guía</h2>
-            <p class="text-slate-600 leading-relaxed">
-                Esta plataforma centraliza los procedimientos técnicos del sistema de gestión jurídica. Incluye las instrucciones de actualización vía GitHub Pages, el análisis de almacenamiento de datos y el nuevo protocolo para la <strong>creación y gestión de múltiples usuarios</strong>, permitiendo que el Estudio LPF escale de una herramienta individual a un entorno colaborativo profesional.
-            </p>
-        </section>
-
-        <!-- PROCESO DE ACTUALIZACIÓN -->
-        <section id="proceso-actualizacion">
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-slate-900 mb-2">1. Procedimiento de Actualización</h2>
-                <p class="text-slate-600">Siga estos pasos para desplegar nuevas versiones del código en su repositorio.</p>
+      ) : (
+        <div className="flex h-screen flex-col">
+          {/* Header */}
+          <header className="flex items-center justify-between bg-slate-900 px-8 py-4 text-white">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">⚖️</span>
+              <span className="text-xl font-bold tracking-tighter">Estudio LPF</span>
             </div>
-
-            <div class="flex flex-col md:flex-row gap-6">
-                <div class="md:w-1/3 flex flex-col gap-3" id="step-buttons">
-                    <button class="step-btn active text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200" data-target="step-1">
-                        Paso 1: Copiar
-                    </button>
-                    <button class="step-btn text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200 hover:border-amber-500" data-target="step-2">
-                        Paso 2: Editar
-                    </button>
-                    <button class="step-btn text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200 hover:border-amber-500" data-target="step-3">
-                        Paso 3: Guardar
-                    </button>
-                </div>
-
-                <div class="md:w-2/3 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 min-h-[250px] flex items-center">
-                    <div id="step-1" class="step-content active w-full">
-                        <div class="text-4xl mb-4">&#128203;</div>
-                        <h3 class="text-xl font-bold text-amber-600 mb-3">Copiar el Código Fuente</h3>
-                        <p class="text-slate-600">Seleccione y copie todo el contenido del bloque de código generado por la IA (archivo <code>.html</code>).</p>
-                    </div>
-                    <div id="step-2" class="step-content w-full">
-                        <div class="text-4xl mb-4">&#9999;&#65039;</div>
-                        <h3 class="text-xl font-bold text-amber-600 mb-3">Editar en GitHub</h3>
-                        <p class="text-slate-600">Busque su archivo en el repositorio, pulse el ícono del <strong>lápiz</strong>, borre el contenido previo y pegue el nuevo código.</p>
-                    </div>
-                    <div id="step-3" class="step-content w-full">
-                        <div class="text-4xl mb-4">&#128190;</div>
-                        <h3 class="text-xl font-bold text-amber-600 mb-3">Confirmar Commit</h3>
-                        <p class="text-slate-600 mb-4">Finalice pulsando el botón verde <strong>"Commit changes"</strong> dos veces para que los cambios se apliquen a su URL pública.</p>
-                    </div>
+            <div className="flex items-center gap-6">
+                <nav className="flex gap-4 text-sm font-bold uppercase tracking-widest text-slate-400">
+                    <button onClick={() => setView('dashboard')} className={view === 'dashboard' ? 'text-amber-500' : ''}>Casos</button>
+                    {currentUserProfile?.rol === 'admin' && <button onClick={() => setView('users')} className={view === 'users' ? 'text-amber-500' : ''}>Usuarios</button>}
+                </nav>
+                <div className="text-right border-l border-slate-700 pl-6">
+                    <p className="text-xs font-bold">{currentUserProfile?.nombre}</p>
+                    <button onClick={() => setView('login')} className="text-[10px] text-red-400 uppercase">Salir</button>
                 </div>
             </div>
-        </section>
+          </header>
 
-        <!-- GESTIÓN DE USUARIOS (NUEVA SECCIÓN) -->
-        <section id="gestion-usuarios" class="pt-8 border-t border-slate-200">
-            <div class="mb-10">
-                <h2 class="text-2xl font-bold text-slate-900 mb-2">2. Sistema Multi-Usuario</h2>
-                <p class="text-slate-600">Con la integración de la Nube, el sistema permitirá la creación de perfiles personalizados para cada integrante del estudio.</p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                            <span class="text-2xl mr-2">&#128101;</span> Niveles de Acceso
-                        </h3>
-                        <div class="chart-container" style="height: 250px;">
-                            <canvas id="userPermissionsChart"></canvas>
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-8">
+            {view === 'dashboard' ? (
+              <div className="mx-auto max-w-6xl space-y-8">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Expedientes en Nube</p>
+                        <h2 className="text-4xl font-black">{casos.length}</h2>
+                    </div>
+                    <div className="rounded-2xl bg-amber-500 p-6 shadow-lg text-white md:col-span-2 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-xl font-bold">Nuevo Expediente</h2>
+                            <p className="text-sm opacity-80">Sincronización instantánea con todos los dispositivos</p>
                         </div>
+                        <button onClick={() => setView('nuevo-caso')} className="rounded-lg bg-white px-6 py-2 font-bold text-slate-900">Registrar</button>
                     </div>
+                </div>
 
-                    <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg border-l-8 border-amber-500">
-                        <h3 class="text-lg font-bold mb-4">¿Cómo crear más usuarios?</h3>
-                        <div class="space-y-4 text-sm text-slate-300">
-                            <div class="flex gap-3">
-                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">1</span>
-                                <p><strong>Habilitar Auth:</strong> Se activará el módulo de autenticación de Firebase en el código.</p>
+                <div className="rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 text-[10px] font-bold uppercase text-slate-400">
+                            <tr>
+                                <th className="px-6 py-4">Carátula</th>
+                                <th className="px-6 py-4">Asignado</th>
+                                <th className="px-6 py-4">Vencimiento</th>
+                                <th className="px-6 py-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {casos.map(c => (
+                                <tr key={c.id} className="hover:bg-slate-50/50">
+                                    <td className="px-6 py-4">
+                                        <p className="font-bold">{c.nombre}</p>
+                                        <p className="text-[10px] text-slate-400 uppercase">{c.tipo}</p>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-slate-500">{c.asignado}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-amber-600">{c.vencimiento}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button onClick={() => eliminarDoc('casos', c.id)} className="text-slate-300 hover:text-red-500">🗑️</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            ) : view === 'users' ? (
+                <div className="mx-auto max-w-2xl space-y-8">
+                    <div className="rounded-2xl bg-white p-8 border border-slate-200">
+                        <h2 className="text-xl font-bold mb-6">Agregar Abogado al Estudio</h2>
+                        <form onSubmit={agregarUsuario} className="space-y-4">
+                            <input name="nombre" placeholder="Nombre Completo" className="w-full p-3 border rounded-lg" required />
+                            <div className="grid grid-cols-2 gap-4">
+                                <input name="login" placeholder="Usuario" className="w-full p-3 border rounded-lg" required />
+                                <input name="pass" type="password" placeholder="Pass" className="w-full p-3 border rounded-lg" required />
                             </div>
-                            <div class="flex gap-3">
-                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">2</span>
-                                <p><strong>Registro:</strong> Se habilitará una pantalla de "Registro" donde cada abogado ingresa su email y contraseña propia.</p>
+                            <button className="w-full bg-slate-900 text-white p-3 rounded-lg font-bold">Crear Acceso</button>
+                        </form>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-[10px] font-bold p-4 uppercase text-slate-400">
+                                <tr><th className="p-4">Nombre</th><th className="p-4 text-right">Acción</th></tr>
+                            </thead>
+                            <tbody>
+                                {usuarios.map(u => (
+                                    <tr key={u.id} className="border-t">
+                                        <td className="p-4 font-medium">{u.nombre} ({u.login})</td>
+                                        <td className="p-4 text-right">
+                                            {u.login !== 'admin' && <button onClick={() => eliminarDoc('usuarios', u.id)} className="text-red-400">Borrar</button>}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                <div className="mx-auto max-w-xl bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+                    <h2 className="text-2xl font-bold mb-6">Nuevo Expediente</h2>
+                    <form onSubmit={agregarCaso} className="space-y-4">
+                        <input name="nombre" placeholder="Carátula" className="w-full p-4 border rounded-xl" required />
+                        <div className="grid grid-cols-2 gap-4">
+                            <select name="tipo" className="p-4 border rounded-xl bg-white">
+                                <option>Estudio</option>
+                                <option>Personal</option>
+                                <option>Comuna</option>
+                            </select>
+                            <select name="asignado" className="p-4 border rounded-xl bg-white">
+                                {usuarios.map(u => <option key={u.id}>{u.nombre}</option>)}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-2">Vencimiento</label>
+                                <input name="vencimiento" type="date" className="w-full p-4 border rounded-xl" required />
                             </div>
-                            <div class="flex gap-3">
-                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">3</span>
-                                <p><strong>Base de Datos:</strong> Cada expediente guardado quedará vinculado al ID del usuario que lo creó, o podrá marcarse como "Público" para el resto del estudio.</p>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-2">Audiencia</label>
+                                <input name="audiencia" type="datetime-local" className="w-full p-4 border rounded-xl" />
                             </div>
                         </div>
-                    </div>
+                        <div className="flex gap-4 pt-4">
+                            <button type="button" onClick={() => setView('dashboard')} className="flex-1 p-4 font-bold text-slate-400">Cancelar</button>
+                            <button type="submit" className="flex-[2] bg-amber-500 text-white p-4 rounded-xl font-bold shadow-lg">Guardar en la Nube</button>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="p-6 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 transition">
-                        <div class="text-3xl mb-2">&#128100;</div>
-                        <h4 class="font-bold text-slate-800">Perfil: Administrador</h4>
-                        <p class="text-sm text-slate-500">Capacidad para crear, editar y eliminar usuarios. Acceso total a la base de datos de expedientes de todos los miembros.</p>
-                    </div>
-                    <div class="p-6 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 transition">
-                        <div class="text-3xl mb-2">&#128104;&#8205;&#9878;&#65039;</div>
-                        <h4 class="font-bold text-slate-800">Perfil: Colaborador</h4>
-                        <p class="text-sm text-slate-500">Gestión de expedientes propios y visualización de expedientes compartidos. Sin acceso a la configuración del sistema.</p>
-                    </div>
-                    <div class="p-6 bg-amber-50 rounded-2xl border border-amber-200">
-                        <h4 class="font-bold text-amber-800 mb-2 italic">Estado Actual del Sistema:</h4>
-                        <p class="text-sm text-amber-700">Actualmente el sistema usa un **usuario estático local**. La creación de nuevos usuarios requiere la **Conexión a la Nube** para que las contraseñas sean validadas de forma segura.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ANÁLISIS DE ALMACENAMIENTO -->
-        <section id="arquitectura-datos" class="pt-8 border-t border-slate-200">
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-slate-900 mb-2">3. Análisis de Datos & Almacenamiento</h2>
-                <p class="text-slate-600">Comparativa técnica entre el almacenamiento local actual y la migración a la nube.</p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="chart-container">
-                        <canvas id="storageChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="bg-slate-100 p-6 rounded-xl border-l-4 border-slate-500">
-                        <h3 class="text-lg font-bold text-slate-800 mb-2">LocalStorage (Actual)</h3>
-                        <p class="text-xs text-slate-600 font-bold uppercase mb-2">Ideal para: Pruebas y uso individual.</p>
-                        <p class="text-sm text-red-600">&#10007; No permite compartir datos con otros usuarios.</p>
-                    </div>
-
-                    <div class="bg-amber-50 p-6 rounded-xl border-l-4 border-amber-500">
-                        <h3 class="text-lg font-bold text-amber-800 mb-2">Cloud Firebase (Propuesto)</h3>
-                        <p class="text-xs text-amber-700 font-bold uppercase mb-2">Ideal para: El Estudio LPF completo.</p>
-                        <p class="text-sm text-green-700">&#10003; Habilita el registro de múltiples usuarios y sincronización.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="bg-slate-900 text-center py-10 text-slate-500 text-sm mt-20 border-t border-slate-800">
-        <div class="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p>&copy; 2026 Estudio LPF - Guía de Gestión Jurídica</p>
-            <div class="flex gap-4">
-                <span class="text-amber-500 font-bold">Estado:</span>
-                <span class="text-green-400">Offline (Local)</span>
-            </div>
+            )}
+          </main>
         </div>
-    </footer>
-
-    <script>
-        // Manejo de Navegación de Pasos
-        const stepButtons = document.querySelectorAll('.step-btn');
-        const stepContents = document.querySelectorAll('.step-content');
-
-        stepButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const targetId = button.getAttribute('data-target');
-                stepButtons.forEach(btn => btn.classList.remove('active'));
-                stepContents.forEach(content => content.classList.remove('active'));
-                button.classList.add('active');
-                document.getElementById(targetId).classList.add('active');
-            });
-        });
-
-        // Inicialización de Gráficos
-        document.addEventListener('DOMContentLoaded', function() {
-            // Gráfico de Almacenamiento
-            const ctxStorage = document.getElementById('storageChart').getContext('2d');
-            new Chart(ctxStorage, {
-                type: 'radar',
-                data: {
-                    labels: ['Sincronización', 'Seguridad', 'Persistencia', 'Múltiples Usuarios', 'Rapidez'],
-                    datasets: [
-                        {
-                            label: 'Sistema Actual',
-                            data: [0, 20, 40, 0, 100],
-                            backgroundColor: 'rgba(100, 116, 139, 0.2)',
-                            borderColor: 'rgba(100, 116, 139, 1)',
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Sistema Cloud',
-                            data: [100, 90, 100, 100, 85],
-                            backgroundColor: 'rgba(245, 158, 11, 0.4)',
-                            borderColor: 'rgba(245, 158, 11, 1)',
-                            borderWidth: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { r: { ticks: { display: false } } },
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-
-            // Gráfico de Permisos de Usuarios
-            const ctxUser = document.getElementById('userPermissionsChart').getContext('2d');
-            new Chart(ctxUser, {
-                type: 'bar',
-                data: {
-                    labels: ['Gestión Usuarios', 'Edición General', 'Ver Todos los Casos', 'Reportes'],
-                    datasets: [
-                        {
-                            label: 'Administrador',
-                            data: [100, 100, 100, 100],
-                            backgroundColor: '#1e293b'
-                        },
-                        {
-                            label: 'Colaborador',
-                            data: [0, 40, 20, 60],
-                            backgroundColor: '#f59e0b'
-                        }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { max: 100, ticks: { display: false }, grid: { display: false } },
-                        y: { grid: { display: false } }
-                    },
-                    plugins: { legend: { position: 'top' } }
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+      )}
+    </div>
+  );
+}
