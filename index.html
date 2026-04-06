@@ -3,6 +3,18 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, query } from 'firebase/firestore';
 
+/** * IMPORTANTE: Para que Tailwind funcione en este entorno React de archivo único,
+ * inyectamos el script del CDN directamente en el documento.
+ */
+const injectTailwind = () => {
+  if (!document.getElementById('tailwind-cdn')) {
+    const script = document.createElement('script');
+    script.id = 'tailwind-cdn';
+    script.src = 'https://cdn.tailwindcss.com';
+    document.head.appendChild(script);
+  }
+};
+
 // --- CONFIGURACIÓN DE FIREBASE ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
     ? JSON.parse(__firebase_config) 
@@ -29,8 +41,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loginError, setLoginError] = useState('');
 
-  // 1. Autenticación Inicial
+  // 0. Cargar Tailwind y Auth
   useEffect(() => {
+    injectTailwind();
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -126,142 +139,158 @@ export default function App() {
   if (loading) return (
     <div className="flex h-screen flex-col items-center justify-center bg-[#0f172a] text-white">
       <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
-      <p className="font-bold tracking-widest uppercase text-sm">Iniciando Estudio LPF</p>
+      <p className="font-bold tracking-widest uppercase text-sm">Sincronizando con la Nube...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f1f5f9] font-sans text-slate-900 overflow-x-hidden">
       {view === 'login' ? (
-        <div className="flex h-screen items-center justify-center bg-[#0f172a]">
-          <div className="w-full max-w-md rounded-[2.5rem] bg-white p-12 shadow-2xl">
+        <div className="flex h-screen items-center justify-center bg-[#0f172a] p-6">
+          <div className="w-full max-w-md rounded-[2.5rem] bg-white p-10 shadow-2xl animate-in fade-in zoom-in duration-500">
             <div className="mb-10 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 text-amber-600 shadow-inner">
-                 <span className="text-4xl">⚖️</span>
+              <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-amber-50 text-amber-600 shadow-inner">
+                 <span className="text-5xl">⚖️</span>
               </div>
-              <h1 className="text-3xl font-black text-[#1e293b]">Estudio LPF</h1>
-              <p className="text-slate-400 font-medium mt-1">Conexión Segura Cloud</p>
+              <h1 className="text-4xl font-black text-[#1e293b] tracking-tight">Estudio LPF</h1>
+              <p className="text-slate-400 font-bold mt-2 uppercase text-[10px] tracking-[0.3em]">Acceso Profesional Cloud</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-6">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Usuario</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Usuario del Sistema</label>
                 <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">👤</span>
-                    <input name="user" type="text" placeholder="Nombre de usuario" className="w-full rounded-2xl border border-slate-100 bg-slate-50/50 p-4 pl-12 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" required />
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">👤</span>
+                    <input name="user" type="text" placeholder="Nombre de usuario" className="w-full rounded-2xl border-2 border-slate-50 bg-slate-50 p-5 pl-14 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all text-sm font-medium" required />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Contraseña</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Contraseña</label>
                 <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
-                    <input name="pass" type="password" placeholder="••••••••" className="w-full rounded-2xl border border-slate-100 bg-slate-50/50 p-4 pl-12 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" required />
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                    <input name="pass" type="password" placeholder="••••••••" className="w-full rounded-2xl border-2 border-slate-50 bg-slate-50 p-5 pl-14 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all text-sm font-medium" required />
                 </div>
               </div>
-              <button className="w-full rounded-2xl bg-[#0f172a] p-5 font-bold text-white shadow-xl shadow-slate-900/20 transition hover:bg-slate-800 active:scale-[0.98]">
-                Entrar al Sistema
+              <button className="w-full rounded-2xl bg-[#0f172a] p-5 font-bold text-white shadow-2xl shadow-slate-900/40 transition hover:bg-slate-800 active:scale-[0.98] text-sm uppercase tracking-widest">
+                Iniciar Sesión
               </button>
-              {loginError && <p className="text-center text-sm font-bold text-red-500 animate-bounce">{loginError}</p>}
+              {loginError && <p className="text-center text-xs font-bold text-red-500 animate-pulse">{loginError}</p>}
             </form>
           </div>
         </div>
       ) : (
         <div className="flex h-screen flex-col">
-          {/* Header Superior */}
-          <header className="flex items-center justify-between bg-[#0f172a] px-10 py-4 text-white shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="bg-amber-500 p-1.5 rounded-lg">
-                <span className="text-xl">⚖️</span>
+          {/* Header Superior - Estilo Captura */}
+          <header className="flex items-center justify-between bg-[#0f172a] px-10 py-6 text-white shadow-2xl sticky top-0 z-50">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-amber-400 to-amber-600 p-2 rounded-xl shadow-lg shadow-amber-500/20">
+                <span className="text-2xl">⚖️</span>
               </div>
-              <span className="text-xl font-bold tracking-tight">Estudio LPF</span>
+              <div>
+                <span className="text-2xl font-black tracking-tight block">Estudio LPF</span>
+                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-[0.2em] opacity-80">Gestión de Expedientes</span>
+              </div>
             </div>
             
-            <div className="flex items-center gap-8">
-                <nav className="flex gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                    <button onClick={() => setView('dashboard')} className={`hover:text-white transition ${view === 'dashboard' ? 'text-amber-500' : ''}`}>Escritorio</button>
-                    {currentUserProfile?.rol === 'admin' && <button onClick={() => setView('users')} className={`hover:text-white transition ${view === 'users' ? 'text-amber-500' : ''}`}>Equipo</button>}
+            <div className="flex items-center gap-10">
+                <nav className="hidden md:flex gap-10 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">
+                    <button onClick={() => setView('dashboard')} className={`hover:text-amber-500 transition-colors ${view === 'dashboard' ? 'text-amber-500' : ''}`}>Escritorio</button>
+                    {currentUserProfile?.rol === 'admin' && <button onClick={() => setView('users')} className={`hover:text-amber-500 transition-colors ${view === 'users' ? 'text-amber-500' : ''}`}>Equipo</button>}
                 </nav>
                 
-                <div className="flex items-center gap-4 border-l border-slate-800 pl-8">
-                    <button onClick={() => setView('nuevo-caso')} className="bg-amber-500 hover:bg-amber-600 px-5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+                <div className="flex items-center gap-6 border-l border-slate-800 pl-10">
+                    <button onClick={() => setView('nuevo-caso')} className="bg-amber-500 hover:bg-amber-600 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-xl shadow-amber-500/25 transition-all hover:-translate-y-0.5 active:translate-y-0">
                        + Nuevo Caso
                     </button>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 font-bold text-[10px] text-slate-900">
-                        {currentUserProfile?.nombre.substring(0,2).toUpperCase()}
+                    <div className="group relative">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800 border border-slate-700 font-black text-xs text-amber-500 cursor-pointer hover:bg-slate-700 transition-all">
+                            {currentUserProfile?.nombre.substring(0,2).toUpperCase()}
+                        </div>
                     </div>
                 </div>
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-10">
+          <main className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16">
             {view === 'dashboard' ? (
-              <div className="mx-auto max-w-7xl space-y-10">
-                {/* Indicadores - Diseño Grid Captura */}
-                <div className="grid grid-cols-5 gap-6">
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Casos</p>
-                        <h2 className="text-3xl font-black text-slate-800">{stats.total}</h2>
+              <div className="mx-auto max-w-7xl space-y-12">
+                {/* Indicadores - Diseño Grid de Captura */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+                    <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100 transition-transform hover:scale-[1.02]">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Casos</p>
+                        <h2 className="text-4xl font-black text-slate-800 leading-none">{stats.total}</h2>
                     </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Vence Hoy</p>
-                        <h2 className="text-3xl font-black text-red-600">{stats.venceHoy}</h2>
+                    <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100 border-l-4 border-l-red-500 transition-transform hover:scale-[1.02]">
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">Vence Hoy</p>
+                        <h2 className="text-4xl font-black text-red-600 leading-none">{stats.venceHoy}</h2>
                     </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Agendas</p>
-                        <h2 className="text-3xl font-black text-amber-600">{stats.agendas}</h2>
+                    <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100 border-l-4 border-l-amber-500 transition-transform hover:scale-[1.02]">
+                        <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-2">Agendas</p>
+                        <h2 className="text-4xl font-black text-amber-600 leading-none">{stats.agendas}</h2>
                     </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest mb-1">Personales</p>
-                        <h2 className="text-3xl font-black text-purple-600">{stats.personales}</h2>
+                    <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100 border-l-4 border-l-purple-500 transition-transform hover:scale-[1.02]">
+                        <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest mb-2">Personales</p>
+                        <h2 className="text-4xl font-black text-purple-600 leading-none">{stats.personales}</h2>
                     </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-                        <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-1">Comunas</p>
-                        <h2 className="text-3xl font-black text-cyan-600">{stats.comunas}</h2>
+                    <div className="rounded-3xl bg-white p-8 shadow-sm border border-slate-100 border-l-4 border-l-cyan-500 transition-transform hover:scale-[1.02]">
+                        <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-2">Comunas</p>
+                        <h2 className="text-4xl font-black text-cyan-600 leading-none">{stats.comunas}</h2>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     {/* Tabla de Casos */}
-                    <div className="lg:col-span-2 rounded-[2rem] bg-white shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center">
-                            <h3 className="font-black text-slate-700 text-lg">Listado de Expedientes Cloud</h3>
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-slate-400 animate-pulse"></div>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">Sincronizado</span>
+                    <div className="lg:col-span-2 rounded-[2.5rem] bg-white shadow-2xl shadow-slate-200/60 border border-white overflow-hidden">
+                        <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-sm">
+                            <div>
+                                <h3 className="font-black text-slate-800 text-xl tracking-tight">Expedientes en Tiempo Real</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Base de datos centralizada LPF</p>
+                            </div>
+                            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse"></div>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">En Línea</span>
                             </div>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 text-[10px] font-bold uppercase text-slate-400 tracking-tighter">
+                                <thead className="bg-slate-50/50 text-[10px] font-bold uppercase text-slate-400 tracking-widest border-b border-slate-50">
                                     <tr>
-                                        <th className="px-8 py-5">Carátula / Doc</th>
-                                        <th className="px-8 py-5">Estado</th>
-                                        <th className="px-8 py-5">Vencimiento</th>
-                                        <th className="px-8 py-5 text-right">Acciones</th>
+                                        <th className="px-10 py-6">Carátula / Tipo</th>
+                                        <th className="px-10 py-6">Responsable</th>
+                                        <th className="px-10 py-6">Vencimiento</th>
+                                        <th className="px-10 py-6 text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {casos.length === 0 ? (
                                         <tr>
-                                            <td colSpan="4" className="px-8 py-20 text-center text-slate-400 italic text-sm">
-                                                No hay datos en la nube para esta sesión.
+                                            <td colSpan="4" className="px-10 py-24 text-center">
+                                                <div className="text-slate-300 mb-2 text-4xl">📁</div>
+                                                <p className="text-slate-400 italic text-sm font-medium">No hay expedientes registrados aún.</p>
                                             </td>
                                         </tr>
                                     ) : casos.map(c => (
-                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
-                                            <td className="px-8 py-5">
-                                                <p className="font-bold text-slate-700">{c.nombre}</p>
-                                                <p className="text-[10px] text-slate-400 uppercase font-semibold">{c.tipo} • {c.asignado}</p>
+                                        <tr key={c.id} className="hover:bg-slate-50/80 transition-all duration-300 group cursor-default">
+                                            <td className="px-10 py-6">
+                                                <p className="font-black text-slate-800 text-sm group-hover:text-amber-600 transition-colors">{c.nombre}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase bg-slate-100 px-2 py-0.5 rounded-md">{c.tipo}</span>
+                                                </div>
                                             </td>
-                                            <td className="px-8 py-5">
-                                                <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase">En Proceso</span>
+                                            <td className="px-10 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-[10px] font-black text-amber-600">
+                                                        {c.asignado.substring(0,2).toUpperCase()}
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-600">{c.asignado}</span>
+                                                </div>
                                             </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`text-xs font-bold ${c.vencimiento === hoy ? 'text-red-500 underline' : 'text-slate-600'}`}>
+                                            <td className="px-10 py-6">
+                                                <div className={`text-xs font-black px-3 py-1.5 rounded-xl inline-block ${c.vencimiento === hoy ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-slate-50 text-slate-600'}`}>
                                                     {c.vencimiento}
-                                                </span>
+                                                </div>
                                             </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <button onClick={() => eliminarDoc('casos', c.id)} className="opacity-0 group-hover:opacity-100 transition text-slate-300 hover:text-red-500">
+                                            <td className="px-10 py-6 text-right">
+                                                <button onClick={() => eliminarDoc('casos', c.id)} className="opacity-0 group-hover:opacity-100 transition-all p-2 hover:bg-red-50 rounded-xl text-red-400 hover:text-red-600">
                                                     🗑️
                                                 </button>
                                             </td>
@@ -273,19 +302,30 @@ export default function App() {
                     </div>
 
                     {/* Sidebar de Audiencias */}
-                    <div className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-2 mb-8">
-                            <span className="text-lg">📅</span>
-                            <h3 className="font-black text-slate-700 uppercase text-xs tracking-widest">Próximas Audiencias</h3>
+                    <div className="rounded-[2.5rem] bg-white p-10 shadow-2xl shadow-slate-200/60 border border-white">
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">📅</span>
+                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Audiencias</h3>
+                            </div>
+                            <span className="bg-amber-500 text-[10px] font-black text-white px-2.5 py-1 rounded-full uppercase">Próximas</span>
                         </div>
                         <div className="space-y-6">
                             {casos.filter(c => c.audiencia).length === 0 ? (
-                                <p className="text-center text-slate-400 italic text-sm py-10">No hay audiencias programadas.</p>
+                                <div className="text-center py-16 border-2 border-dashed border-slate-100 rounded-3xl">
+                                    <p className="text-slate-400 text-xs font-bold italic uppercase tracking-widest">Agenda Vacía</p>
+                                </div>
                             ) : casos.filter(c => c.audiencia).map(c => (
-                                <div key={c.id} className="p-5 rounded-2xl bg-slate-50 border-l-4 border-amber-500 flex flex-col gap-1">
-                                    <p className="text-[10px] font-black text-amber-600 uppercase">{new Date(c.audiencia).toLocaleString()}</p>
-                                    <h4 className="font-bold text-slate-800 text-sm leading-tight">{c.nombre}</h4>
-                                    <p className="text-[10px] text-slate-400 mt-2 italic">A cargo: {c.asignado}</p>
+                                <div key={c.id} className="p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100 hover:border-amber-200 hover:bg-amber-50/30 transition-all group">
+                                    <p className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-2">
+                                        <span className="block h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                        {new Date(c.audiencia).toLocaleDateString()} - {new Date(c.audiencia).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </p>
+                                    <h4 className="font-black text-slate-800 text-sm leading-tight group-hover:text-amber-700 transition-colors">{c.nombre}</h4>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Prof: {c.asignado}</span>
+                                        <span className="text-xs">⚖️</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -293,11 +333,14 @@ export default function App() {
                 </div>
               </div>
             ) : view === 'users' ? (
-                <div className="mx-auto max-w-2xl space-y-8 animate-in fade-in duration-500">
-                    <div className="rounded-[2rem] bg-white p-10 border border-slate-100 shadow-xl">
-                        <h2 className="text-xl font-black mb-8 text-slate-800 flex items-center gap-3">
-                            <span>👥</span> Gestión del Equipo
-                        </h2>
+                <div className="mx-auto max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="rounded-[2.5rem] bg-white p-12 border border-white shadow-2xl">
+                        <div className="mb-10">
+                            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-4 tracking-tight">
+                                <span className="bg-slate-100 p-3 rounded-2xl">👥</span> Gestión de Equipo
+                            </h2>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 ml-16">Alta de nuevos profesionales</p>
+                        </div>
                         <form onSubmit={async (e) => {
                             e.preventDefault();
                             const formData = new FormData(e.target);
@@ -308,66 +351,70 @@ export default function App() {
                                 rol: 'abogado'
                             });
                             e.target.reset();
-                        }} className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre del Profesional</label>
-                                <input name="nombre" placeholder="Ej: Dr. García" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                            setView('dashboard');
+                        }} className="space-y-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Nombre y Apellido</label>
+                                <input name="nombre" placeholder="Dr/a. Nombre del Profesional" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" required />
                             </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Usuario</label>
-                                    <input name="login" placeholder="login" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Usuario Acceso</label>
+                                    <input name="login" placeholder="ej: jgarcia" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" required />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Clave</label>
-                                    <input name="pass" type="password" placeholder="****" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Contraseña</label>
+                                    <input name="pass" type="password" placeholder="****" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" required />
                                 </div>
                             </div>
-                            <button className="w-full bg-[#0f172a] text-white p-5 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all">Registrar en Equipo</button>
+                            <button className="w-full bg-[#0f172a] text-white p-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/40 hover:bg-slate-800 transition-all active:scale-[0.98]">Registrar Profesional</button>
                         </form>
                     </div>
                 </div>
             ) : (
-                <div className="mx-auto max-w-xl bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-2xl animate-in zoom-in-95 duration-300">
-                    <h2 className="text-2xl font-black mb-8 text-slate-800 flex items-center gap-3">
-                        <span className="bg-amber-500 p-2 rounded-lg text-white text-base">📁</span>
-                        Nuevo Expediente
-                    </h2>
-                    <form onSubmit={agregarCaso} className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Carátula / Identificación</label>
-                            <input name="nombre" placeholder="Nombre del caso o número" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                <div className="mx-auto max-w-2xl bg-white p-12 rounded-[3rem] border border-white shadow-2xl animate-in zoom-in-95 duration-500">
+                    <div className="mb-10">
+                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-4 tracking-tight">
+                            <span className="bg-amber-100 p-3 rounded-2xl text-amber-600">📁</span>
+                            Nuevo Expediente
+                        </h2>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 ml-16">Carga segura de datos a la nube</p>
+                    </div>
+                    <form onSubmit={agregarCaso} className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Carátula del Expediente</label>
+                            <input name="nombre" placeholder="Nombre completo del caso o ID Judicial" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" required />
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo</label>
-                                <select name="tipo" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Tipo de Gestión</label>
+                                <select name="tipo" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all appearance-none cursor-pointer">
                                     <option>Estudio</option>
                                     <option>Personal</option>
                                     <option>Comuna</option>
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Responsable</label>
-                                <select name="asignado" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Profesional Asignado</label>
+                                <select name="asignado" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all appearance-none cursor-pointer">
                                     {usuarios.map(u => <option key={u.id}>{u.nombre}</option>)}
                                 </select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vencimiento de Plazo</label>
-                                <input name="vencimiento" type="date" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" required />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Vencimiento Término</label>
+                                <input name="vencimiento" type="date" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" required />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Fecha de Audiencia</label>
-                                <input name="audiencia" type="datetime-local" className="w-full p-4 border-slate-100 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/20" />
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Fecha/Hora Audiencia</label>
+                                <input name="audiencia" type="datetime-local" className="w-full p-5 border-2 border-slate-50 bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 font-medium transition-all" />
                             </div>
                         </div>
-                        <div className="flex gap-4 pt-6">
-                            <button type="button" onClick={() => setView('dashboard')} className="flex-1 p-5 font-bold text-slate-400 hover:text-slate-600 transition">Cancelar</button>
-                            <button type="submit" className="flex-[2] bg-amber-500 text-white p-5 rounded-2xl font-bold shadow-xl shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-[0.98]">
-                                Guardar Expediente
+                        <div className="flex gap-6 pt-6">
+                            <button type="button" onClick={() => setView('dashboard')} className="flex-1 p-6 font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase text-xs tracking-widest">Descartar</button>
+                            <button type="submit" className="flex-[2] bg-amber-500 text-white p-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-amber-500/30 hover:bg-amber-600 transition-all active:scale-[0.98]">
+                                Sincronizar Caso
                             </button>
                         </div>
                     </form>
@@ -375,12 +422,12 @@ export default function App() {
             )}
           </main>
           
-          <footer className="bg-white px-10 py-3 border-t border-slate-100 flex justify-between items-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estudio LPF © 2026</p>
-            <div className="flex gap-4">
+          <footer className="bg-white px-12 py-5 border-t border-slate-50 flex justify-between items-center text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Estudio LPF • Inteligencia Legal 2026</p>
+            <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase">Servidor Activo</span>
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Enlace Cloud Encriptado</span>
                 </div>
             </div>
           </footer>
