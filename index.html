@@ -3,364 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estudio LPF - Gestión Jurídica Cloud</title>
+    <title>Estudio LPF - Guía Interactiva</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .vence-hoy { background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
-        .vence-pronto { background-color: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
-        .vence-bien { background-color: #f0fdf4; color: #166534; border-left: 4px solid #22c55e; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        #login-screen { transition: opacity 0.5s ease-in-out; }
-        .loader { border-top-color: #f59e0b; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        .step-btn.active {
+            background-color: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+        .step-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .step-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-    <!-- Pantalla de Login -->
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-                    <i class="fas fa-balance-scale text-3xl text-amber-600"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-slate-800">Estudio LPF</h1>
-                <p class="text-gray-500 text-sm">Conexión Segura Cloud</p>
-            </div>
-            
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Usuario</label>
-                    <div class="relative">
-                        <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
-                        <input type="text" id="user-input" required class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" placeholder="Nombre de usuario">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Contraseña</label>
-                    <div class="relative">
-                        <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
-                        <input type="password" id="pass-input" required class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition" placeholder="••••••••">
-                    </div>
-                </div>
-                <div id="login-error" class="hidden text-red-500 text-xs font-bold text-center italic">
-                    Credenciales incorrectas.
-                </div>
-                <button type="submit" id="btn-login" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg transition flex justify-center items-center">
-                    <span>Entrar al Sistema</span>
-                </button>
-            </form>
+<!-- Chosen Palette: Slate (800, 900 for structure and text) and Amber (400, 500 for accents and calls to action) to maintain the Estudio LPF professional identity. -->
+<!-- Application Structure Plan: The SPA is structured as a comprehensive technical manual. It guides the user through the immediate update process, explains the data storage architecture, and now includes a dedicated module for multi-user management. This structure ensures the user understands not just HOW to update, but WHO can access the system and WHY a migration to the cloud is essential for teamwork. -->
+<!-- Visualization & Content Choices:
+1. GitHub Update Process -> Goal: Organize/Inform -> Viz: Interactive Tabbed Stepper -> Justification: Breaks down technical instructions into digestible, focused parts.
+2. Storage Analysis -> Goal: Compare -> Viz: Radar Chart -> Justification: Compares Local vs Cloud architectures across 5 key performance metrics.
+3. User Permissions Analysis -> Goal: Compare -> Viz: Horizontal Bar Chart -> Justification: Clearly distinguishes the permission levels between Administrators and Collaborators for the new multi-user feature.
+4. User Creation Flow -> Goal: Organize -> Viz: Step-by-step logic cards -> Justification: Explains the transition from static to dynamic user management.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <header class="bg-slate-900 text-white py-12 px-6 shadow-md border-b-4 border-amber-500">
+        <div class="max-w-5xl mx-auto text-center md:text-left">
+            <div class="text-amber-500 text-4xl mb-4">&#9878;</div>
+            <h1 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Manual Operativo: Estudio LPF</h1>
+            <p class="text-lg text-slate-300 max-w-2xl">Gestión de actualizaciones, arquitectura de datos y administración de múltiples usuarios en la nube.</p>
         </div>
-    </div>
+    </header>
 
-    <!-- Contenido Principal -->
-    <div id="dashboard-content" class="hidden">
-        <nav class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-40">
-            <div class="container mx-auto flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-balance-scale text-2xl text-amber-400"></i>
-                    <span class="text-xl font-bold tracking-tight">Estudio LPF</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button onclick="document.getElementById('modal-nuevo-caso').classList.remove('hidden')" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition text-sm">
-                        <i class="fas fa-plus mr-1"></i> Nuevo Caso
+    <main class="max-w-5xl mx-auto py-10 px-6 space-y-20">
+
+        <!-- INTRODUCCIÓN -->
+        <section id="introduccion" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4 border-l-4 border-amber-500 pl-4">Propósito de la Guía</h2>
+            <p class="text-slate-600 leading-relaxed">
+                Esta plataforma centraliza los procedimientos técnicos del sistema de gestión jurídica. Incluye las instrucciones de actualización vía GitHub Pages, el análisis de almacenamiento de datos y el nuevo protocolo para la <strong>creación y gestión de múltiples usuarios</strong>, permitiendo que el Estudio LPF escale de una herramienta individual a un entorno colaborativo profesional.
+            </p>
+        </section>
+
+        <!-- PROCESO DE ACTUALIZACIÓN -->
+        <section id="proceso-actualizacion">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">1. Procedimiento de Actualización</h2>
+                <p class="text-slate-600">Siga estos pasos para desplegar nuevas versiones del código en su repositorio.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6">
+                <div class="md:w-1/3 flex flex-col gap-3" id="step-buttons">
+                    <button class="step-btn active text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200" data-target="step-1">
+                        Paso 1: Copiar
                     </button>
-                    <div class="flex items-center space-x-3 border-l border-slate-700 pl-4 relative group cursor-pointer">
-                        <img src="https://ui-avatars.com/api/?name=Admin+LPF&background=f59e0b&color=fff" class="w-8 h-8 rounded-full border border-slate-600">
-                        <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border p-2 hidden group-hover:block text-slate-800">
-                            <button onclick="location.reload()" class="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg">Cerrar Sesión</button>
+                    <button class="step-btn text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200 hover:border-amber-500" data-target="step-2">
+                        Paso 2: Editar
+                    </button>
+                    <button class="step-btn text-left px-6 py-4 rounded-xl border-2 border-slate-200 font-bold transition duration-200 hover:border-amber-500" data-target="step-3">
+                        Paso 3: Guardar
+                    </button>
+                </div>
+
+                <div class="md:w-2/3 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 min-h-[250px] flex items-center">
+                    <div id="step-1" class="step-content active w-full">
+                        <div class="text-4xl mb-4">&#128203;</div>
+                        <h3 class="text-xl font-bold text-amber-600 mb-3">Copiar el Código Fuente</h3>
+                        <p class="text-slate-600">Seleccione y copie todo el contenido del bloque de código generado por la IA (archivo <code>.html</code>).</p>
+                    </div>
+                    <div id="step-2" class="step-content w-full">
+                        <div class="text-4xl mb-4">&#9999;&#65039;</div>
+                        <h3 class="text-xl font-bold text-amber-600 mb-3">Editar en GitHub</h3>
+                        <p class="text-slate-600">Busque su archivo en el repositorio, pulse el ícono del <strong>lápiz</strong>, borre el contenido previo y pegue el nuevo código.</p>
+                    </div>
+                    <div id="step-3" class="step-content w-full">
+                        <div class="text-4xl mb-4">&#128190;</div>
+                        <h3 class="text-xl font-bold text-amber-600 mb-3">Confirmar Commit</h3>
+                        <p class="text-slate-600 mb-4">Finalice pulsando el botón verde <strong>"Commit changes"</strong> dos veces para que los cambios se apliquen a su URL pública.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GESTIÓN DE USUARIOS (NUEVA SECCIÓN) -->
+        <section id="gestion-usuarios" class="pt-8 border-t border-slate-200">
+            <div class="mb-10">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">2. Sistema Multi-Usuario</h2>
+                <p class="text-slate-600">Con la integración de la Nube, el sistema permitirá la creación de perfiles personalizados para cada integrante del estudio.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">&#128101;</span> Niveles de Acceso
+                        </h3>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="userPermissionsChart"></canvas>
                         </div>
                     </div>
-                </div>
-            </div>
-        </nav>
 
-        <main class="container mx-auto py-8 px-4">
-            <!-- KPIs -->
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Total Casos</p>
-                    <h3 class="text-xl font-bold" id="total-casos">0</h3>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-red-500">Vence Hoy</p>
-                    <h3 class="text-xl font-bold text-red-600" id="vence-hoy-count">0</h3>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Agendas</p>
-                    <h3 class="text-xl font-bold text-amber-600" id="audiencias-count">0</h3>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-purple-500">Personales</p>
-                    <h3 class="text-xl font-bold text-purple-600" id="personales-count">0</h3>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-cyan-500">Comunas</p>
-                    <h3 class="text-xl font-bold text-cyan-600" id="comunas-count">0</h3>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="p-4 border-b flex justify-between items-center bg-gray-50/50">
-                            <h2 class="font-bold text-slate-700">Listado de Expedientes Cloud</h2>
-                            <div id="sync-indicator" class="text-[10px] text-gray-400 font-bold flex items-center">
-                                <i class="fas fa-circle mr-1"></i> Modo Standalone
+                    <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg border-l-8 border-amber-500">
+                        <h3 class="text-lg font-bold mb-4">¿Cómo crear más usuarios?</h3>
+                        <div class="space-y-4 text-sm text-slate-300">
+                            <div class="flex gap-3">
+                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">1</span>
+                                <p><strong>Habilitar Auth:</strong> Se activará el módulo de autenticación de Firebase en el código.</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">2</span>
+                                <p><strong>Registro:</strong> Se habilitará una pantalla de "Registro" donde cada abogado ingresa su email y contraseña propia.</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="bg-amber-500 text-slate-900 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">3</span>
+                                <p><strong>Base de Datos:</strong> Cada expediente guardado quedará vinculado al ID del usuario que lo creó, o podrá marcarse como "Público" para el resto del estudio.</p>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="bg-white text-gray-500 text-[10px] uppercase font-bold border-b">
-                                    <tr>
-                                        <th class="px-6 py-4">Carátula / Doc</th>
-                                        <th class="px-6 py-4">Estado</th>
-                                        <th class="px-6 py-4">Vencimiento</th>
-                                        <th class="px-6 py-4 text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-casos" class="divide-y divide-gray-100">
-                                    <tr><td colspan="4" class="p-10 text-center text-gray-400 italic">No hay datos en la nube para esta sesión.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="p-6 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 transition">
+                        <div class="text-3xl mb-2">&#128100;</div>
+                        <h4 class="font-bold text-slate-800">Perfil: Administrador</h4>
+                        <p class="text-sm text-slate-500">Capacidad para crear, editar y eliminar usuarios. Acceso total a la base de datos de expedientes de todos los miembros.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 transition">
+                        <div class="text-3xl mb-2">&#128104;&#8205;&#9878;&#65039;</div>
+                        <h4 class="font-bold text-slate-800">Perfil: Colaborador</h4>
+                        <p class="text-sm text-slate-500">Gestión de expedientes propios y visualización de expedientes compartidos. Sin acceso a la configuración del sistema.</p>
+                    </div>
+                    <div class="p-6 bg-amber-50 rounded-2xl border border-amber-200">
+                        <h4 class="font-bold text-amber-800 mb-2 italic">Estado Actual del Sistema:</h4>
+                        <p class="text-sm text-amber-700">Actualmente el sistema usa un **usuario estático local**. La creación de nuevos usuarios requiere la **Conexión a la Nube** para que las contraseñas sean validadas de forma segura.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANÁLISIS DE ALMACENAMIENTO -->
+        <section id="arquitectura-datos" class="pt-8 border-t border-slate-200">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">3. Análisis de Datos & Almacenamiento</h2>
+                <p class="text-slate-600">Comparativa técnica entre el almacenamiento local actual y la migración a la nube.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="chart-container">
+                        <canvas id="storageChart"></canvas>
+                    </div>
+                </div>
+
                 <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h2 class="text-xs font-bold text-slate-800 mb-4 uppercase tracking-widest flex items-center">
-                            <i class="fas fa-calendar-alt mr-2 text-amber-500"></i> Próximas Audiencias
-                        </h2>
-                        <div id="lista-audiencias" class="space-y-3">
-                            <p class="text-xs text-gray-400 italic">No hay audiencias programadas.</p>
-                        </div>
+                    <div class="bg-slate-100 p-6 rounded-xl border-l-4 border-slate-500">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">LocalStorage (Actual)</h3>
+                        <p class="text-xs text-slate-600 font-bold uppercase mb-2">Ideal para: Pruebas y uso individual.</p>
+                        <p class="text-sm text-red-600">&#10007; No permite compartir datos con otros usuarios.</p>
+                    </div>
+
+                    <div class="bg-amber-50 p-6 rounded-xl border-l-4 border-amber-500">
+                        <h3 class="text-lg font-bold text-amber-800 mb-2">Cloud Firebase (Propuesto)</h3>
+                        <p class="text-xs text-amber-700 font-bold uppercase mb-2">Ideal para: El Estudio LPF completo.</p>
+                        <p class="text-sm text-green-700">&#10003; Habilita el registro de múltiples usuarios y sincronización.</p>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </section>
 
-    <!-- Modal Nuevo Caso -->
-    <div id="modal-nuevo-caso" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl border border-slate-200">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-slate-800">Nuevo Registro de Expediente</h2>
-                <button onclick="document.getElementById('modal-nuevo-caso').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times"></i></button>
+    </main>
+
+    <footer class="bg-slate-900 text-center py-10 text-slate-500 text-sm mt-20 border-t border-slate-800">
+        <div class="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p>&copy; 2026 Estudio LPF - Guía de Gestión Jurídica</p>
+            <div class="flex gap-4">
+                <span class="text-amber-500 font-bold">Estado:</span>
+                <span class="text-green-400">Offline (Local)</span>
             </div>
-            <form id="form-caso" class="space-y-5 text-sm">
-                <div>
-                    <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Carátula del Expediente</label>
-                    <input type="text" id="nombre" required placeholder="Ej: Perez Juan c/ Seguros S.A." class="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Origen / Tipo</label>
-                        <select id="origen" class="w-full border rounded-xl px-4 py-3 bg-white focus:ring-2 focus:ring-amber-500 transition">
-                            <option value="estudio">Estudio</option>
-                            <option value="personal">Personal</option>
-                            <option value="comuna">Comuna</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Estado Actual</label>
-                        <select id="estado" class="w-full border rounded-xl px-4 py-3 bg-white focus:ring-2 focus:ring-amber-500 transition">
-                            <option value="En Trámite">En Trámite</option>
-                            <option value="Traslado">Traslado</option>
-                            <option value="A Sentencia">A Sentencia</option>
-                            <option value="Finalizado">Finalizado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Link Google Drive (Documentos)</label>
-                    <div class="relative">
-                        <i class="fab fa-google-drive absolute left-3 top-3.5 text-blue-500"></i>
-                        <input type="url" id="drive-link" placeholder="https://drive.google.com/..." class="w-full border rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-400 transition">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Fecha Vencimiento</label>
-                        <input type="date" id="vencimiento" required class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1 uppercase tracking-wider">Fecha Audiencia (Opcional)</label>
-                        <input type="datetime-local" id="fecha-audiencia" class="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-
-                <div class="flex space-x-3 pt-4">
-                    <button type="button" onclick="document.getElementById('modal-nuevo-caso').classList.add('hidden')" class="flex-1 px-6 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition">Cancelar</button>
-                    <button type="submit" id="btn-save" class="flex-[2] bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-xl flex justify-center items-center">
-                        <i class="fas fa-cloud-upload-alt mr-2"></i> Guardar
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
+    </footer>
 
-    <!-- Script de lógica -->
-    <script type="module">
-        // Firebase solo se inicializará si las credenciales existen
-        let db = null;
-        let auth = null;
-        let appId = 'estudio-lpf-cloud';
-        let firebaseActivo = false;
+    <script>
+        // Manejo de Navegación de Pasos
+        const stepButtons = document.querySelectorAll('.step-btn');
+        const stepContents = document.querySelectorAll('.step-content');
 
-        const loginForm = document.getElementById('login-form');
-        const loginScreen = document.getElementById('login-screen');
-        const dashboardContent = document.getElementById('dashboard-content');
-        const loginError = document.getElementById('login-error');
-
-        // Función para intentar conectar a Firebase
-        async function initFirebase() {
-            try {
-                if (typeof __firebase_config !== 'undefined') {
-                    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js");
-                    const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js");
-                    const { getFirestore } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js");
-
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    appId = typeof __app_id !== 'undefined' ? __app_id : 'estudio-lpf-cloud';
-                    
-                    await signInAnonymously(auth);
-                    firebaseActivo = true;
-                    iniciarSincronizacion();
-                }
-            } catch (e) {
-                console.warn("Firebase no disponible en este entorno. Funcionando en modo local.");
-            }
-        }
-
-        // Manejo del Login
-        loginForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const user = document.getElementById('user-input').value;
-            const pass = document.getElementById('pass-input').value;
-
-            // Validar credenciales fijas
-            if (user === 'admin' && pass === '1234') {
-                document.getElementById('btn-login').innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-                
-                // Intentamos conectar a Firebase si estamos en el entorno correcto
-                await initFirebase();
-
-                loginScreen.classList.add('opacity-0');
-                setTimeout(() => {
-                    loginScreen.classList.add('hidden');
-                    dashboardContent.classList.remove('hidden');
-                }, 500);
-            } else {
-                loginError.classList.remove('hidden');
-            }
-        };
-
-        // El resto de la lógica de sincronización y renderizado se mantiene igual
-        // Solo que ahora valida si db existe antes de operar
-        function iniciarSincronizacion() {
-            if (!db) return;
-            import("https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js").then(({ collection, onSnapshot }) => {
-                const casosRef = collection(db, 'artifacts', appId, 'public', 'data', 'casos');
-                onSnapshot(casosRef, (snapshot) => {
-                    const casos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderizarDashboard(casos);
-                    document.getElementById('sync-indicator').innerHTML = `<i class="fas fa-check-circle mr-1 text-green-500"></i> Cloud Activo`;
-                });
+        stepButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-target');
+                stepButtons.forEach(btn => btn.classList.remove('active'));
+                stepContents.forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(targetId).classList.add('active');
             });
-        }
+        });
 
-        window.eliminarCaso = async (id) => {
-            if(!confirm("¿Eliminar expediente?")) return;
-            if (db) {
-                const { deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js");
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'casos', id));
-            }
-        };
-
-        document.getElementById('form-caso').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save');
-            const data = {
-                nombre: document.getElementById('nombre').value,
-                origen: document.getElementById('origen').value,
-                estado: document.getElementById('estado').value,
-                driveLink: document.getElementById('drive-link').value || null,
-                vencimiento: document.getElementById('vencimiento').value,
-                audiencia: document.getElementById('fecha-audiencia').value || null,
-                timestamp: Date.now()
-            };
-
-            if (db) {
-                const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js");
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'casos'), data);
-            }
-            
-            document.getElementById('modal-nuevo-caso').classList.add('hidden');
-            e.target.reset();
-        };
-
-        function renderizarDashboard(casos = []) {
-            const listaEl = document.getElementById('lista-casos');
-            const audEl = document.getElementById('lista-audiencias');
-            listaEl.innerHTML = '';
-            audEl.innerHTML = '';
-
-            const sortedCasos = [...casos].sort((a, b) => new Date(a.vencimiento) - new Date(b.vencimiento));
-            let counts = { hoy: 0, pers: 0, com: 0, aud: 0 };
-
-            sortedCasos.forEach(caso => {
-                const dias = Math.ceil((new Date(caso.vencimiento) - new Date().setHours(0,0,0,0)) / 86400000);
-                let claseVenc = 'vence-bien';
-                if (dias <= 0) { claseVenc = 'vence-hoy'; if(dias===0) counts.hoy++; }
-                else if (dias <= 3) claseVenc = 'vence-pronto';
-
-                if(caso.origen === 'personal') counts.pers++;
-                if(caso.origen === 'comuna') counts.com++;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors border-b";
-                tr.innerHTML = `
-                    <td class="px-6 py-4">
-                        <div class="text-sm font-bold text-slate-800">${caso.nombre}</div>
-                        <div class="text-[9px] uppercase font-bold text-gray-400 flex items-center">
-                            ${caso.origen} ${caso.driveLink ? `<a href="${caso.driveLink}" target="_blank" class="ml-2 text-blue-500"><i class="fab fa-google-drive"></i> Drive</a>` : ''}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 text-[10px] font-bold uppercase text-slate-500">${caso.estado}</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${claseVenc}">${caso.vencimiento}</span></td>
-                    <td class="px-6 py-4 text-right"><button onclick="eliminarCaso('${caso.id}')" class="text-gray-300 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></td>
-                `;
-                listaEl.appendChild(tr);
-
-                if (caso.audiencia) {
-                    counts.aud++;
-                    const fa = new Date(caso.audiencia);
-                    const div = document.createElement('div');
-                    div.className = "p-3 bg-amber-50 border-l-4 border-amber-400 rounded-xl mb-2";
-                    div.innerHTML = `
-                        <p class="text-xs font-bold text-slate-800">${caso.nombre}</p>
-                        <p class="text-[10px] text-slate-500">${fa.toLocaleString()} hs</p>
-                    `;
-                    audEl.appendChild(div);
+        // Inicialización de Gráficos
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gráfico de Almacenamiento
+            const ctxStorage = document.getElementById('storageChart').getContext('2d');
+            new Chart(ctxStorage, {
+                type: 'radar',
+                data: {
+                    labels: ['Sincronización', 'Seguridad', 'Persistencia', 'Múltiples Usuarios', 'Rapidez'],
+                    datasets: [
+                        {
+                            label: 'Sistema Actual',
+                            data: [0, 20, 40, 0, 100],
+                            backgroundColor: 'rgba(100, 116, 139, 0.2)',
+                            borderColor: 'rgba(100, 116, 139, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Sistema Cloud',
+                            data: [100, 90, 100, 100, 85],
+                            backgroundColor: 'rgba(245, 158, 11, 0.4)',
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { r: { ticks: { display: false } } },
+                    plugins: { legend: { position: 'bottom' } }
                 }
             });
 
-            document.getElementById('total-casos').innerText = casos.length;
-            document.getElementById('vence-hoy-count').innerText = counts.hoy;
-            document.getElementById('audiencias-count').innerText = counts.aud;
-            document.getElementById('personales-count').innerText = counts.pers;
-            document.getElementById('comunas-count').innerText = counts.com;
-        }
+            // Gráfico de Permisos de Usuarios
+            const ctxUser = document.getElementById('userPermissionsChart').getContext('2d');
+            new Chart(ctxUser, {
+                type: 'bar',
+                data: {
+                    labels: ['Gestión Usuarios', 'Edición General', 'Ver Todos los Casos', 'Reportes'],
+                    datasets: [
+                        {
+                            label: 'Administrador',
+                            data: [100, 100, 100, 100],
+                            backgroundColor: '#1e293b'
+                        },
+                        {
+                            label: 'Colaborador',
+                            data: [0, 40, 20, 60],
+                            backgroundColor: '#f59e0b'
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { max: 100, ticks: { display: false }, grid: { display: false } },
+                        y: { grid: { display: false } }
+                    },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        });
     </script>
 </body>
 </html>
